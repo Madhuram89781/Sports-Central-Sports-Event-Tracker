@@ -123,10 +123,20 @@ export default function EventCardReadOnly({ event }) {
             ? 'bg-red-500 text-white animate-pulse'
             : event.status === 'completed'
             ? 'bg-green-500/20 text-green-300'
+            : event.status === 'delayed'
+            ? 'bg-yellow-500/20 text-yellow-300'
             : 'bg-blue-500/20 text-blue-300'
         }`}>
           {event.status.toUpperCase()}
         </span>
+        {event.status === 'delayed' && event.delayReason && (
+          <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <p className="text-xs text-yellow-300">
+              <span className="font-semibold">Reason: </span>
+              {event.delayReason}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

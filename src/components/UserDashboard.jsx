@@ -34,7 +34,7 @@ export default function UserDashboard() {
   const filteredEvents = useMemo(() => {
     return events.filter(event => {
       if (activeTab === 'upcoming') return event.status === 'scheduled';
-      if (activeTab === 'live') return event.status === 'live';
+      if (activeTab === 'live') return event.status === 'live' || event.status === 'delayed';
       if (activeTab === 'completed') return event.status === 'completed';
       return true;
     });

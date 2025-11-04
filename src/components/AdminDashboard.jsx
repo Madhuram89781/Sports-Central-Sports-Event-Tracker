@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   const filteredEvents = useMemo(() => {
     return events.filter(event => {
       if (activeTab === 'upcoming') return event.status === 'scheduled';
-      if (activeTab === 'live') return event.status === 'live';
+      if (activeTab === 'live') return event.status === 'live' || event.status === 'delayed';
       if (activeTab === 'completed') return event.status === 'completed';
       return true;
     });
@@ -95,6 +95,22 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update status. Please try again.');
+    }
+  }, []);
+
+  // Handle delay event with reason
+  const delayEvent = useCallback(async (id, reason) => {
+    try {
+      const eventRef = doc(db, 'events', id);
+      await updateDoc(eventRef, {
+        status: 'delayed',
+        delayReason: reason,
+        delayedAt: new Date().toISOString()
+      });
+      setEditingScore(null);
+    } catch (error) {
+      console.error('Error delaying event:', error);
+      alert('Failed to delay event. Please try again.');
     }
   }, []);
 
@@ -203,6 +219,7 @@ export default function AdminDashboard() {
                 onUpdateStatus={updateStatus}
                 onDeleteEvent={deleteEvent}
                 onSetEditingScore={setEditingScore}
+                onDelayEvent={delayEvent}
               />
             ))}
           </div>

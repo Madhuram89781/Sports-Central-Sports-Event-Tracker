@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
-import { X, Edit2, Save, Calendar, Clock, MapPin, Trophy } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { X, Edit2, Save, Calendar, Clock, MapPin, Trophy, AlertCircle } from 'lucide-react';
 import ScoreCard from './ScoreCard';
 
 const SPORT_COLORS = {
@@ -11,15 +11,18 @@ const SPORT_COLORS = {
   Volleyball: 'from-cyan-500 to-blue-600'
 };
 
-const EventCard = React.memo(({ 
-  event, 
-  editingScore, 
-  onUpdateScore, 
-  onUpdateStatus, 
+const EventCard = React.memo(({
+  event,
+  editingScore,
+  onUpdateScore,
+  onUpdateStatus,
   onDeleteEvent,
-  onSetEditingScore 
+  onSetEditingScore,
+  onDelayEvent
 }) => {
   const isCricket = event.sport === 'Cricket';
+  const [showDelayModal, setShowDelayModal] = useState(false);
+  const [delayReason, setDelayReason] = useState('');
 
   const winner = useMemo(() => {
     if (event.status !== 'completed') return null;
@@ -48,6 +51,29 @@ const EventCard = React.memo(({
   const handleSaveComplete = useCallback(() => {
     onUpdateStatus(event.id, 'completed');
     onSetEditingScore(null);
+  }, [event.id, onUpdateStatus, onSetEditingScore]);
+
+  const handleDelayClick = useCallback(() => {
+    setShowDelayModal(true);
+  }, []);
+
+  const handleDelaySubmit = useCallback(() => {
+    if (delayReason.trim()) {
+      onDelayEvent(event.id, delayReason);
+      setShowDelayModal(false);
+      setDelayReason('');
+      onSetEditingScore(null);
+    }
+  }, [event.id, delayReason, onDelayEvent, onSetEditingScore]);
+
+  const handleDelayCancel = useCallback(() => {
+    setShowDelayModal(false);
+    setDelayReason('');
+  }, []);
+
+  const handleResumeLive = useCallback(() => {
+    onUpdateStatus(event.id, 'live');
+    onSetEditingScore(event.id);
   }, [event.id, onUpdateStatus, onSetEditingScore]);
 
   return (
@@ -128,7 +154,7 @@ const EventCard = React.memo(({
       )}
 
       {/* Action Buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {editingScore === event.id ? (
           <>
             <button
@@ -137,6 +163,13 @@ const EventCard = React.memo(({
             >
               <Save className="w-4 h-4" />
               Update
+            </button>
+            <button
+              onClick={handleDelayClick}
+              className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-xl font-semibold hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <AlertCircle className="w-4 h-4" />
+              Delay
             </button>
             <button
               onClick={handleSaveComplete}
@@ -165,6 +198,15 @@ const EventCard = React.memo(({
                 Update Score
               </button>
             )}
+            {event.status === 'delayed' && (
+              <button
+                onClick={handleResumeLive}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Edit2 className="w-4 h-4" />
+                Resume Live
+              </button>
+            )}
             {event.status === 'completed' && (
               <button
                 onClick={handleEdit}
@@ -185,11 +227,57 @@ const EventCard = React.memo(({
             ? 'bg-red-500 text-white animate-pulse'
             : event.status === 'completed'
             ? 'bg-green-500/20 text-green-300'
+            : event.status === 'delayed'
+            ? 'bg-yellow-500/20 text-yellow-300'
             : 'bg-blue-500/20 text-blue-300'
         }`}>
           {event.status.toUpperCase()}
         </span>
+        {event.status === 'delayed' && event.delayReason && (
+          <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <p className="text-xs text-yellow-300">
+              <span className="font-semibold">Reason: </span>
+              {event.delayReason}
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Delay Modal */}
+      {showDelayModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 max-w-md w-full border border-yellow-500/30 shadow-2xl">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="w-6 h-6 text-yellow-400" />
+              <h3 className="text-2xl font-bold text-white">Game Delayed</h3>
+            </div>
+            <p className="text-gray-300 mb-4">Please enter the reason for the delay:</p>
+            <textarea
+              value={delayReason}
+              onChange={(e) => setDelayReason(e.target.value)}
+              placeholder="e.g., Rain delay, Technical issues, etc."
+              className="w-full px-4 py-3 bg-slate-700/50 border border-yellow-500/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500 transition-colors resize-none"
+              rows="4"
+              autoFocus
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleDelayCancel}
+                className="flex-1 px-4 py-3 bg-slate-700 text-white rounded-xl font-semibold hover:bg-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelaySubmit}
+                disabled={!delayReason.trim()}
+                className="flex-1 px-4 py-3 bg-yellow-600 text-white rounded-xl font-semibold hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });
